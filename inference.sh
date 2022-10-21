@@ -1,3 +1,13 @@
+#!/bin/bash
+
+#SBATCH --job-name inference_hfgi
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-gpu=4
+#SBATCH --mem-per-gpu=5G
+#SBATCH --time 3-0
+#SBATCH --partition batch_ce_ugrad
+#SBATCH -x sw1
+
 python ./scripts/inference.py \
 --images_dir=./test_imgs  --n_sample=100 --edit_attribute='inversion'  \
 --save_dir=./experiment/inference_results  ./checkpoint/ckpt.pt 
