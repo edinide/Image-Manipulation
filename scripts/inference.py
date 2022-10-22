@@ -30,10 +30,11 @@ def main(args):
     # set the editing operation
     if args.edit_attribute == 'inversion':
         pass
-    elif args.edit_attribute == 'age' or args.edit_attribute == 'smile':
+    elif args.edit_attribute == 'age' or args.edit_attribute == 'smile' or args.edit_attribute == 'pose':
         interfacegan_directions = {
                 'age': './editings/interfacegan_directions/age.pt',
-                'smile': './editings/interfacegan_directions/smile.pt' }
+                'smile': './editings/interfacegan_directions/smile.pt',
+                'pose': './editings/interfacegan_directions/pose.pt' }
         edit_direction = torch.load(interfacegan_directions[args.edit_attribute]).to(device)
     else:
         ganspace_pca = torch.load('./editings/ganspace_pca/ffhq_pca.pt') 
@@ -62,7 +63,7 @@ def main(args):
         if args.edit_attribute == 'inversion':
             img_edit = imgs
             edit_latents = latent_codes[i].unsqueeze(0).to(device)
-        elif args.edit_attribute == 'age' or args.edit_attribute == 'smile':
+        elif args.edit_attribute == 'age' or args.edit_attribute == 'smile' or args.edit_attribute == 'pose':
             img_edit, edit_latents = editor.apply_interfacegan(latent_codes[i].unsqueeze(0).to(device), edit_direction, factor=args.edit_degree)
         else:
             img_edit, edit_latents = editor.apply_ganspace(latent_codes[i].unsqueeze(0).to(device), ganspace_pca, [edit_direction])

@@ -44,11 +44,13 @@ class Predictor(cog.Predictor):
         interfacegan_directions = {
             "age": "./editings/interfacegan_directions/age.pt",
             "smile": "./editings/interfacegan_directions/smile.pt",
+            "pose": "./editings/interfacegan_directions/pose.pt"
         }
         self.ganspace_pca = torch.load("./editings/ganspace_pca/ffhq_pca.pt")
         self.edit_direction = {
             "age": torch.load(interfacegan_directions["age"]).cuda(),
             "smile": torch.load(interfacegan_directions["smile"]).cuda(),
+            "pose": torch.load(interfacegan_directions["pose"]).cuda(),
             "eyes": (54, 7, 8, 20),
             "beard": (58, 7, 9, -20),
             "lip": (34, 10, 11, 20),
@@ -63,7 +65,7 @@ class Predictor(cog.Predictor):
         "edit_attribute",
         type=str,
         default="smile",
-        options=["inversion", "age", "smile", "eyes", "lip", "beard"],
+        options=["inversion", "age", "smile", "pose", "eyes", "lip", "beard"],
         help="choose image editing option",
     )
     @cog.input(
@@ -72,7 +74,7 @@ class Predictor(cog.Predictor):
         default=0,
         min=-5,
         max=5,
-        help="control the degree of editing (valid for 'age' and 'smile').",
+        help="control the degree of editing (valid for 'age', 'smile' and 'pose').",
     )
     def predict(self, image, edit_attribute, edit_degree):
         out_path = Path(tempfile.mkdtemp()) / "out.png"
@@ -124,7 +126,7 @@ class Predictor(cog.Predictor):
             )
         else:
             edit_direction = self.edit_direction[edit_attribute]
-            if edit_attribute in ["age", "smile"]:
+            if edit_attribute in ["age", "smile", "pose"]:
                 img_edit, edit_latents = self.editor.apply_interfacegan(
                     latent_codes[0].unsqueeze(0).cuda(),
                     edit_direction,

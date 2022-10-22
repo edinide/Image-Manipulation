@@ -16,7 +16,7 @@ from training.coach import Coach
 
 def main():
 	opts = TrainOptions().parse()
-	create_initial_experiment_dir(opts)
+	##create_initial_experiment_dir(opts)
 	coach = Coach(opts)
 	coach.train()
  
