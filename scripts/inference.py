@@ -61,11 +61,12 @@ def main(args):
 
     # perform high-fidelity inversion or editing
     for i, batch in enumerate(data_loader):
+        print(len(batch))
         if args.n_sample is not None and i > args.n_sample:
             print('inference finished!')
             break            
         x = batch.to(device).float()
-
+        
         # calculate the distortion map
         imgs, _ = generator([latent_codes[i].unsqueeze(0).to(device)],None, input_is_latent=True, randomize_noise=False, return_latents=True)
         res = x -  torch.nn.functional.interpolate(torch.clamp(imgs, -1., 1.), size=(256,256) , mode='bilinear')
@@ -96,7 +97,7 @@ def main(args):
         result = tensor2im(imgs[0])
         im_save_path = os.path.join(edit_directory_path, f"{i:05d}.jpg")
         Image.fromarray(np.array(result)).save(im_save_path)
-
+        # print(imgs.shape) --> torch.Size([1, 3, 256, 256])
         return(result)
 
 
@@ -223,11 +224,10 @@ def img_transform(img, transform=None):
     sample = transform(sample)
     return sample
 
-def inference(net, result, save_dir='', output_path='./', output_name='f', use_gpu=True):
+def inference(net, img_name, image_path, save_dir='', output_path='./', use_gpu=True):
     '''
 
     :param net:
-    :param result:
     :param save_dir:
     :param output_path:
     :return:
@@ -245,8 +245,7 @@ def inference(net, result, save_dir='', output_path='./', output_name='f', use_g
 
     # multi-scale
     scale_list = [1, 0.5, 0.75, 1.25, 1.5, 1.75]
-    ##img = read_img(save_dir +'/pose')
-    img = result
+    img = read_img(os.path.join(image_path,img_name))
     testloader_list = []
     testloader_flip_list = []
     for pv in scale_list:
@@ -265,7 +264,6 @@ def inference(net, result, save_dir='', output_path='./', output_name='f', use_g
         # print(img_transform(img, composed_transforms_ts))
         testloader_flip_list.append(img_transform(img, composed_transforms_ts_flip))
     # print(testloader_list)
-    start_time = timeit.default_timer()
     # One testing epoch
     net.eval()
     # 1 0.5 0.75 1.25 1.5 1.75 ; flip:
@@ -300,15 +298,14 @@ def inference(net, result, save_dir='', output_path='./', output_name='f', use_g
     predictions = torch.max(outputs_final, 1)[1]
     results = predictions.cpu().numpy()
     vis_res = decode_labels(results)
-    print ('test')
     parsing_im = Image.fromarray(vis_res[0])
-    ##parsing_im.save(output_path+'/{}.png'.format(output_name))
-    parsing_im.save(output_path+'/1.png')
-    ###cv2.imwrite(output_path+'/{}_gray.png'.format(output_name), results[0, :, :])
-    cv2.imwrite(output_path+'/1_gray.png', results[0, :, :])
 
-    end_time = timeit.default_timer()
-    print('time used for the multi-scale image inference' + ' is :' + str(end_time - start_time))
+    ## save masked images
+    ##parsing_im.save(output_path+'/{}.png'.format(output_name))
+    parsing_im.save(output_path+'/'+img_name)
+    ###cv2.imwrite(output_path+'/{}_gray.png'.format(output_name), results[0, :, :])
+    cv2.imwrite(output_path+'/'+img_name.strip('.jpg')+'_gray.jpg', results[0, :, :])
+
 
 if __name__ == "__main__":
     device = "cuda"
@@ -331,6 +328,7 @@ if __name__ == "__main__":
     net = deeplab_xception_transfer.deeplab_xception_transfer_projection_savemem(n_classes=20,
                                                                                  hidden_layers=128,
                                                                                  source_classes=7, )
+
     if not args.loadmodel == '':
         x = torch.load(args.loadmodel)
         net.load_source_model(x)
@@ -345,6 +343,14 @@ if __name__ == "__main__":
     else:
         use_gpu = False
         raise RuntimeError('must use the gpu!!!!')
+    
+    image_path = os.path.join(args.save_dir, args.edit_attribute)
+    files= os.listdir(image_path)
 
-    result=main(args) # HFGI의 편집된 이미지가 result로 return됨
-    inference(net=net, result=result, save_dir= args.save_dir, output_path=args.output_path , output_name=args.output_name, use_gpu=use_gpu)
+    start_time = timeit.default_timer()
+    
+    for img in files:
+        inference(net=net, img_name=img, image_path=image_path, save_dir= args.save_dir, output_path=args.output_path, use_gpu=use_gpu)
+    
+    end_time = timeit.default_timer()
+    print('time used for the multi-scale image inference' + ' is :' + str(end_time - start_time))
