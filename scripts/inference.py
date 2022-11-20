@@ -27,6 +27,10 @@ from networks import deeplab_xception_transfer, graph
 from dataloaders import custom_transforms as tr
 import torch.nn.functional as F
 
+#--------------------create folder!!
+    #os.makedirs(args.output_path)
+    #os.makedirs(args.output_path2)
+
 def main(args):
     net, opts = setup_model(args.ckpt, device)
     is_cars = 'car' in opts.dataset_type
@@ -98,7 +102,6 @@ def main(args):
         im_save_path = os.path.join(edit_directory_path, f"{i:05d}.jpg")
         Image.fromarray(np.array(result)).save(im_save_path)
         # print(imgs.shape) --> torch.Size([1, 3, 256, 256])
-        return(result)
 
 
 def setup_data_loader(args, opts):
@@ -224,7 +227,7 @@ def img_transform(img, transform=None):
     sample = transform(sample)
     return sample
 
-def inference(net, img_name, image_path, save_dir='', output_path='./', use_gpu=True):
+def inference(net, img_attribute, img_name, origin_img_name, image_path, output_path='./', use_gpu=True):
     '''
 
     :param net:
@@ -245,7 +248,11 @@ def inference(net, img_name, image_path, save_dir='', output_path='./', use_gpu=
 
     # multi-scale
     scale_list = [1, 0.5, 0.75, 1.25, 1.5, 1.75]
-    img = read_img(os.path.join(image_path,img_name))
+    if img_attribute=='edit':
+        img = read_img(os.path.join(image_path,img_name))
+    if img_attribute== 'original':
+        img = read_img(os.path.join(image_path,origin_img_name))
+
     testloader_list = []
     testloader_flip_list = []
     for pv in scale_list:
@@ -299,17 +306,22 @@ def inference(net, img_name, image_path, save_dir='', output_path='./', use_gpu=
     results = predictions.cpu().numpy()
     vis_res = decode_labels(results)
     parsing_im = Image.fromarray(vis_res[0])
+    ################ save masked images
 
-    ## save masked images
-    ##parsing_im.save(output_path+'/{}.png'.format(output_name))
-    parsing_im.save(output_path+'/'+img_name)
-    ###cv2.imwrite(output_path+'/{}_gray.png'.format(output_name), results[0, :, :])
-    cv2.imwrite(output_path+'/'+img_name.strip('.jpg')+'_gray.jpg', results[0, :, :])
+    if img_attribute == 'edit':
+        ##parsing_im.save(output_path+'/{}.png'.format(output_name))
+        parsing_im.save(output_path+'/'+img_name)
+        ###cv2.imwrite(output_path+'/{}_gray.png'.format(output_name), results[0, :, :])
+        cv2.imwrite(output_path+'/'+img_name.strip('.jpg')+'_gray.jpg', results[0, :, :])
 
+    if img_attribute == 'original':
+        parsing_im.save(output_path+'/'+origin_img_name)
+        cv2.imwrite(output_path+'/'+origin_img_name.strip('.jpg')+'_gray.jpg', results[0, :, :])
 
 if __name__ == "__main__":
     device = "cuda"
     parser = argparse.ArgumentParser(description="Inference")
+    #hfgi
     parser.add_argument("--images_dir", type=str, default=None, help="The directory to the images")
     parser.add_argument("--save_dir", type=str, default=None, help="The directory to save.")
     parser.add_argument("--batch", type=int, default=1, help="batch size for the generator")
@@ -317,10 +329,10 @@ if __name__ == "__main__":
     parser.add_argument("--edit_attribute", type=str, default='smile', help="The desired attribute")
     parser.add_argument("--edit_degree", type=float, default=0, help="edit degreee")
     parser.add_argument("ckpt", metavar="CHECKPOINT", help="path to generator checkpoint")
-    #mask
+    #graphonomy
     parser.add_argument('--loadmodel', default='', type=str)
     parser.add_argument('--output_path', default='', type=str)
-    parser.add_argument('--output_name', default='', type=str)
+    parser.add_argument('--output_path2', default='', type=str)
     parser.add_argument('--use_gpu', default=1, type=int)
 
     args = parser.parse_args()
@@ -344,13 +356,21 @@ if __name__ == "__main__":
         use_gpu = False
         raise RuntimeError('must use the gpu!!!!')
     
+    #'edited images' list
     image_path = os.path.join(args.save_dir, args.edit_attribute)
     files= os.listdir(image_path)
+    #'original images' list
+    origin_image_path = os.path.join(args.save_dir, 'inversion')
+    files2= os.listdir(origin_image_path)
 
     start_time = timeit.default_timer()
-    
-    for img in files:
-        inference(net=net, img_name=img, image_path=image_path, save_dir= args.save_dir, output_path=args.output_path, use_gpu=use_gpu)
-    
+
+
+    for img,img2 in zip(files, files2):
+        #mask edited images
+        inference(net=net, img_attribute='edit', img_name=img, origin_img_name=img2, image_path=image_path, output_path=args.output_path, use_gpu=use_gpu)
+        #mask original images
+        inference(net=net, img_attribute='original', img_name=img, origin_img_name=img2, image_path=origin_image_path, output_path=args.output_path2, use_gpu=use_gpu)
+        
     end_time = timeit.default_timer()
     print('time used for the multi-scale image inference' + ' is :' + str(end_time - start_time))
