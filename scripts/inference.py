@@ -30,6 +30,7 @@ import torch.nn.functional as F
 #--------------------create folder!!
     #os.makedirs(args.output_path)
     #os.makedirs(args.output_path2)
+    
 
 def main(args):
     net, opts = setup_model(args.ckpt, device)
@@ -65,7 +66,6 @@ def main(args):
 
     # perform high-fidelity inversion or editing
     for i, batch in enumerate(data_loader):
-        print(len(batch))
         if args.n_sample is not None and i > args.n_sample:
             print('inference finished!')
             break            
@@ -99,7 +99,7 @@ def main(args):
         # save images
         imgs = torch.nn.functional.interpolate(imgs, size=(256,256) , mode='bilinear')
         result = tensor2im(imgs[0])
-        im_save_path = os.path.join(edit_directory_path, f"{i:05d}.jpg")
+        im_save_path = os.path.join(edit_directory_path, f"{i:05d}.png")
         Image.fromarray(np.array(result)).save(im_save_path)
         # print(imgs.shape) --> torch.Size([1, 3, 256, 256])
 
@@ -157,13 +157,13 @@ def get_all_latents(net, data_loader, n_images=None, is_cars=False):
 
 def save_image(img, save_dir, idx):
     result = tensor2im(img)
-    im_save_path = os.path.join(save_dir, f"{idx:05d}.jpg")
+    im_save_path = os.path.join(save_dir, f"{idx:05d}.png")
     Image.fromarray(np.array(result)).save(im_save_path)
 
 
 ##------------------------------------------mask--------------------------------------##
-label_colours = [(229,193,197) #이쁜칙칙핑크색.
-                , (128,0,0), (255,0,0), (0,85,0), (170,0,51), (255,85,0), (0,0,85), (0,119,221), (85,85,0), (0,85,85), (85,51,0), (52,86,128), (0,128,0)
+label_colours = [(255,255,255) 
+                , (0,0,0), (255,0,0), (0,85,0), (170,0,51), (255,85,0), (0,0,85), (0,119,221), (85,85,0), (0,85,85), (85,51,0), (52,86,128), (0,128,0)
                 , (0,0,255), (51,170,221), (0,255,255), (85,255,170), (170,255,85), (255,255,0), (255,170,0)]
 
 
@@ -309,14 +309,14 @@ def inference(net, img_attribute, img_name, origin_img_name, image_path, output_
     ################ save masked images
 
     if img_attribute == 'edit':
-        ##parsing_im.save(output_path+'/{}.png'.format(output_name))
         parsing_im.save(output_path+'/'+img_name)
-        ###cv2.imwrite(output_path+'/{}_gray.png'.format(output_name), results[0, :, :])
-        cv2.imwrite(output_path+'/'+img_name.strip('.jpg')+'_gray.jpg', results[0, :, :])
+        cv2.imwrite(output_path+'/'+img_name.strip('png')+'_gray.png', results[0, :, :])
+        
 
     if img_attribute == 'original':
         parsing_im.save(output_path+'/'+origin_img_name)
-        cv2.imwrite(output_path+'/'+origin_img_name.strip('.jpg')+'_gray.jpg', results[0, :, :])
+        cv2.imwrite(output_path+'/'+origin_img_name.strip('png')+'_gray.png', results[0, :, :])
+        
 
 if __name__ == "__main__":
     device = "cuda"
@@ -336,41 +336,90 @@ if __name__ == "__main__":
     parser.add_argument('--use_gpu', default=1, type=int)
 
     args = parser.parse_args()
+    main(args) #hfgi editing infer
 
-    net = deeplab_xception_transfer.deeplab_xception_transfer_projection_savemem(n_classes=20,
-                                                                                 hidden_layers=128,
-                                                                                 source_classes=7, )
+    infer_mask = os.path.join(args.save_dir, 'infer_mask')
+    os.makedirs(infer_mask)
 
-    if not args.loadmodel == '':
-        x = torch.load(args.loadmodel)
-        net.load_source_model(x)
-        print('load model:', args.loadmodel)
-    else:
-        print('no model load !!!!!!!!')
-        raise RuntimeError('No model!!!!')
+    if args.edit_attribute == 'pose':
+        net = deeplab_xception_transfer.deeplab_xception_transfer_projection_savemem(n_classes=20,
+                                                                                    hidden_layers=128,
+                                                                                    source_classes=7, )
 
-    if args.use_gpu >0 :
-        net.cuda()
-        use_gpu = True
-    else:
-        use_gpu = False
-        raise RuntimeError('must use the gpu!!!!')
-    
-    #'edited images' list
-    image_path = os.path.join(args.save_dir, args.edit_attribute)
-    files= os.listdir(image_path)
-    #'original images' list
-    origin_image_path = os.path.join(args.save_dir, 'inversion')
-    files2= os.listdir(origin_image_path)
+        if not args.loadmodel == '':
+            x = torch.load(args.loadmodel)
+            net.load_source_model(x)
+            print('load model:', args.loadmodel)
+        else:
+            print('no model load !!!!!!!!')
+            raise RuntimeError('No model!!!!')
 
-    start_time = timeit.default_timer()
-
-
-    for img,img2 in zip(files, files2):
-        #mask edited images
-        inference(net=net, img_attribute='edit', img_name=img, origin_img_name=img2, image_path=image_path, output_path=args.output_path, use_gpu=use_gpu)
-        #mask original images
-        inference(net=net, img_attribute='original', img_name=img, origin_img_name=img2, image_path=origin_image_path, output_path=args.output_path2, use_gpu=use_gpu)
+        if args.use_gpu >0 :
+            net.cuda()
+            use_gpu = True
+        else:
+            use_gpu = False
+            raise RuntimeError('must use the gpu!!!!')
         
-    end_time = timeit.default_timer()
-    print('time used for the multi-scale image inference' + ' is :' + str(end_time - start_time))
+        #'edited images' list
+        image_path = os.path.join(args.save_dir, args.edit_attribute)
+        files= os.listdir(image_path)
+        #'original images' list
+        origin_image_path = os.path.join(args.save_dir, 'inversion')
+        files2= os.listdir(origin_image_path)
+
+        start_time = timeit.default_timer()
+
+
+        for img,img2 in zip(files, files2):
+            #mask edited images
+            inference(net=net, img_attribute='edit', img_name=img, origin_img_name=img2, image_path=image_path, output_path=args.output_path, use_gpu=use_gpu)
+            #mask original images
+            inference(net=net, img_attribute='original', img_name=img, origin_img_name=img2, image_path=origin_image_path, output_path=args.output_path2, use_gpu=use_gpu)
+            
+        end_time = timeit.default_timer()
+        print('time used for the multi-scale image inference' + ' is :' + str(end_time - start_time))
+
+        fg_img_path = os.path.join(args.save_dir, 'pose_mask')
+        fg_files= os.listdir(fg_img_path)
+        #'original images' list
+        bg_img_path = os.path.join(args.save_dir, 'original_mask')
+        bg_files= os.listdir(bg_img_path)
+
+        masked = os.path.join(args.save_dir, 'masked')
+        #os.makedirs(masked)
+        mask = os.path.join(args.save_dir, 'mask')
+        #os.makedirs(mask)
+
+        # ---- 변수 ---- #
+        # fg_img : pose_mask, bg_img : original_mask
+        # img : pose_img, img2 : orig_img
+        for fg_img,bg_img,img,img2 in zip(fg_files, bg_files,files,files2):
+            # get image name and read images
+            img_name=img
+            fg_img = read_img(os.path.join(fg_img_path,img_name))
+            bg_img= read_img(os.path.join(bg_img_path,img_name))
+            img= read_img(os.path.join(image_path,img_name))
+            img2= read_img(os.path.join(origin_image_path,img_name))
+
+            fg_img=np.array(fg_img)
+            bg_img=np.array(bg_img)
+            img=np.array(img)
+            img2=np.array(img2)
+
+            #foreground image 생성
+            fg_img=cv2.bitwise_not(fg_img)
+            fg = cv2.bitwise_and(fg_img,img)
+            cv2.imwrite(masked+'/'+img_name.strip('.png')+'_fg.png',fg)
+
+            #backgroud image 생성
+            bg=cv2.bitwise_and(bg_img,img2)
+            cv2.imwrite(masked+'/'+img_name.strip('.png')+'_bg.png',bg)
+
+            fg_ = read_img(os.path.join(masked,img_name.strip('.png')+'_fg.png'))
+            bg_ = read_img(os.path.join(masked,img_name.strip('.png')+'_bg.png'))
+            fg_=np.array(fg_)
+            bg_=np.array(bg_)
+
+            res= cv2.bitwise_or(fg_,bg_)
+            cv2.imwrite(mask+'/'+img_name,res)
