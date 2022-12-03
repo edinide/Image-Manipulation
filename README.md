@@ -47,8 +47,11 @@ Modify `inference.sh` according to the follwing instructions, and run:
 ```
 bash inference.sh 
 ```
-If you are running this code in slurm, `slurm : sbatch inference.sh`
-Then you can get inpainted images by running lama, run:
+If you are running this code in slurm, run :
+```
+sbatch inference.sh
+```
+Then you can get inpainted images by running lama :
 ```
 cd lama
 export TORCH_HOME=$(pwd) && export PYTHONPATH=$(pwd)
@@ -89,7 +92,7 @@ If you are running this code in slurm, `slurm : sbatch train.sh`
 
 ## Reference
 [HFGI](https://github.com/Tengfei-Wang/HFGI)   
-[Graphonomy](https://github.com/Gaoyiminggithub/Graphonomy)
+[Graphonomy](https://github.com/Gaoyiminggithub/Graphonomy)   
 [LaMa](https://github.com/saic-mdal/lama)   
 
 ## Reports
