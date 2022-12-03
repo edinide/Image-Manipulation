@@ -4,7 +4,7 @@
 
 ## Overview
  > 최근 GAN Inversion을 기반으로 사진 합성 기술이 연구되고 있다. 이미지의 재구성과 편집 사이에는 Trade-off 문제가 있으며, 최신의 GAN Inversion 프레임워크인 High-Fidelity GAN Inversion (HFGI, CVPR 2022)는 재구성과 편집에서 균형을 맞춰 극복하였지만 시점 변경이 큰 이미지를 편집할 때 원본의 잔상(잔물결)이 남는 치명적인 한계를 보였다.
----
+- - -
 ## 연구 배경
 최근 GAN Inversion을 기반으로 사진 합성 기술이 연구되고 있다. 이미지의 재구성과 편집 사이에는 Trade-off 문제가 있으며, 최신의 GAN Inversion 프레임워크인 High-Fidelity GAN Inversion (HFGI, CVPR 2022)는 재구성과 편집에서 균형을 맞춰 극복하였지만 시점 변경이 큰 이미지를 편집할 때 잔상이 남는 치명적인 한계를 보였다. 따라서 HFGI에서 ‘pose’ 속성 편집을 했을 때 이미지의 잔상을 최대한 제거하여 자연스러운 이미지 편집이 가능하도록 개선하는 것이 본 연구의 목표이다.
 
@@ -12,7 +12,7 @@
 제안하는 모델의 구조는 아래의 그림에 묘사되어 있다. HFGI에서 나온 이미지들을 사전훈련이 된 Graphonomy 모델을 통해 이진마스크 사진을 생성한 후, 비트연산을 통해서 이미지 잔상에 해당하는 부분에 대해 이진마스크를 생성하였다. 또한 시점 변경으로 인물이 움직이면서 원래는 없었던 배경이 새롭게 합성되어야 하는데, 이 누락된 부분을 더 좋게 채울 수 있도록 Image Inpainting 기법을 적용했다. Image inpainting은 이미지에서 누락된 부분을 재구성하는 기술로 현재까지 다양한 기법들이 등장하였으며, 그 중에서 올해 발표된 기법 중 256*256 해상도에서 훈련하고 고해상도의 이미지를 넓게 인페인팅이 가능한 성능 좋은 lama inpainting(WACV 2022)을 이용하였다. 제공된 pretrained model를 이용하여 편집된 이미지와 잔물결 이진 마스크 두개를 입력으로 넣어서 해당 부분을 지우고 자연스럽게 채워주는 lama inpainting을 적용했다.
 
 ![architecture](https://user-images.githubusercontent.com/30232133/205449282-a8783050-9793-48a3-a6b2-cc88a3a0130d.jpg)
----
+- - -
 ## Environment
 - OS : Ubuntu 20.04.5 LTS (GNU/Linux 5.4.0-131-generic x86_64) 
 - VGA : NVIDIA GeForce RTX 3090 
