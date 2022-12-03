@@ -91,6 +91,8 @@ sbatch train.sh
 ```
 ## Conclusion
 > HFGI에서는 시점 변경이 크게 속성 편집을 한 이미지에는 잔상이 남는 문제점이 있었다. 이를 해결하기 위해 Graphonomy를 이용하여 각 이미지들의 이진 마스크를 생성하고 잔물결에 해당하는 부분을 구했다. 시점 변경이 되면서 기존의 인물이 없는 빈 공간(ghost artifact)의 경우 Image Inpainting 기법을 이용하여 누락된 부분을 채우고 새롭게 합성하는 방식을 취하였다.
+![result](https://user-images.githubusercontent.com/30232133/205451775-b75cd244-8146-4da0-8251-8f264a4db918.jpg)
+
 
 ## Reference
 [HFGI](https://github.com/Tengfei-Wang/HFGI)   
