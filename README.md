@@ -48,12 +48,6 @@ If you are running this code in slurm, run :
 ```
 sbatch inference.sh
 ```
-Then you can get inpainted images by running lama :
-```
-cd lama
-export TORCH_HOME=$(pwd) && export PYTHONPATH=$(pwd)
-python bin/predict.py model.path=$(pwd)/big-lama indir=$(pwd)/inversion2 outdir=$(pwd)/output`
-```
 
 | Args | Description
 | :--- | :----------
